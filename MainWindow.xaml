@@ -1,0 +1,22 @@
+﻿<Window x:Class="UDPLogger.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:UDPLogger"
+        mc:Ignorable="d"
+        Title="UDPLogger" Height="450" Width="800" Padding="2,0,0,0">
+    <DockPanel Margin="4,4,4,4">
+        <WrapPanel HorizontalAlignment="Left" DockPanel.Dock="Top" Margin="5,5,5,5">
+            <Button x:Name="StartButton" Content="Start Comunicazione" Margin="4,0,4,0" Background="{x:Null}" BorderBrush="Black"/>
+            <Button x:Name="StopButton" Content="Stop Comunicazione" Background="{x:Null}" BorderBrush="Black" Margin="4,0,4,0"/>
+            <DockPanel x:Name="IPDockPanel" LastChildFill="False" Margin="4,0,4,0">
+                <Label x:Name="IPLabel" Content="Indirizzo IP" DockPanel.Dock="Left"/>
+                <TextBox x:Name="IPTextBox" TextWrapping="Wrap" DockPanel.Dock="Right" VerticalAlignment="Center" BorderBrush="Black" Background="{x:Null}" Text="{Binding IPAddressProperty, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}"/>
+            </DockPanel>
+        </WrapPanel>
+        <StackPanel DockPanel.Dock="Bottom">
+            <DataGrid x:Name="DataGrid"/>
+        </StackPanel>
+    </DockPanel>
+</Window>
