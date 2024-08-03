@@ -1,13 +1,8 @@
-﻿using System;
-using System.Buffers.Binary;
-using System.Collections.Generic;
+﻿using System.Buffers.Binary;
 using System.ComponentModel;
 using System.Diagnostics;
-using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using static UDPLogger.MainWindow;
 
@@ -15,27 +10,41 @@ namespace UDPLogger
 {
     public class UDPSocketHandler
     {
-
-        public delegate void ReportGridDataEventHandler(object? sender, ReportGridDataEventArgs args);
-        public record ReportGridDataEventArgs(List<GridData> GridDataList);
-
-        public delegate void ReportConnectionStatusEventHandler(object? sender, ReportConnectionStatusEventArgs args);
-        public record ReportConnectionStatusEventArgs(bool ConnectionStatus);
-
-        public record UdpWorkerGridDataReport(List<GridData> GridDataList);
-        public record UdpWorkeConnectionStatusReport(bool ConnectionStatus);
+        private record UdpWorkerGridDataReport(List<UDPReceivedData> ReceivedDataList);
+        private record UdpWorkeConnectionStatusReport(bool ConnectionStatus);
 
 
-        public event ReportGridDataEventHandler ReportGridDataEvent = delegate { };
-        public event ReportConnectionStatusEventHandler ReportConnectionStatusEvent = delegate { };
+        public delegate void ReceivedDataEventHandler(object? sender, ReceivedDataEventArgs args);
+        public record ReceivedDataEventArgs(List<UDPReceivedData> ReceivedDataList);
 
-        const Int32 PLC_PORT = 8958;
-        const Int32 SERVER_PORT = 10000;
+        public delegate void ConnectionStatusEventHandler(object? sender, ConnectionStatusEventArgs args);
+        public record ConnectionStatusEventArgs(bool ConnectionStatus);
+
+        public record UDPReceivedData(string Name, object Data);
+
+        public event ReceivedDataEventHandler ReceivedDataEvent = delegate { };
+        public event ConnectionStatusEventHandler ConnectionStatusEvent = delegate { };
+
+        public const byte STX = 0x02; //START
+        public const byte ETX = 0x03; //END
+        public const byte DNE = 0x04; //DATA NAME ESCAPE
+        public const byte DVE = 0x05; //DATA VALUE ESCAPE
+
+        public const byte CMD_STOP = 1;
+        public const byte CMD_CONN = 2;
+        public const byte CMD_PING = 3;
+
+        public const int PING_TIMEOUT = 1000; //ms
+        public const int PACKET_TIMEOUT = 2500; //ms
 
         private readonly BackgroundWorker udpWorker;
 
         private volatile bool connect;
-        private volatile string? ipAddress;
+
+        private volatile int remotePort = -1;
+        private volatile int localPort = -1;
+        private volatile string? ipString;
+
         private volatile bool disconnect;
         private volatile bool ping;
         private volatile bool clientConnected;
@@ -52,10 +61,13 @@ namespace UDPLogger
             Application.Current.Dispatcher.ShutdownStarted += (sender, args) => udpWorker.CancelAsync();
         }
 
-        public void Connect(string ipAddress)
+        public void Connect(string ipAddress, int remotePort, int localPort)
         {
-            this.connect = true;
-            this.ipAddress = ipAddress;
+            this.ipString = ipAddress;
+            this.remotePort = remotePort;
+            this.localPort = localPort;
+
+            this.connect = true; //AFTER! FOR ASYNC MATTERS!
         }
 
         public void Disconnect()
@@ -68,13 +80,13 @@ namespace UDPLogger
             var udpWorker = new BackgroundWorker() { WorkerSupportsCancellation = true, WorkerReportsProgress = true };
             udpWorker.DoWork += (sender, args) =>
             {
-                UdpClient udpClient = new(SERVER_PORT);
+                UdpClient? udpClient = null;
                 bool oldConnectionStatus = false;
                 while (!udpWorker.CancellationPending)
                 {
                     try
                     {
-                        UDPSend(udpClient);
+                        UDPSend(ref udpClient);
                     }
                     catch (Exception ex)
                     {
@@ -86,10 +98,10 @@ namespace UDPLogger
 
                     try
                     {
-                        var gridDataList = UDPReceive(udpClient);
-                        if (gridDataList != null && gridDataList.Count > 0)
+                        var receivedDataList = UDPReceive(ref udpClient);
+                        if (receivedDataList != null && receivedDataList.Count > 0)
                         {
-                            udpWorker.ReportProgress(0, new UdpWorkerGridDataReport(gridDataList));
+                            udpWorker.ReportProgress(0, new UdpWorkerGridDataReport(receivedDataList));
                         }
                     }
                     catch (Exception ex)
@@ -102,17 +114,28 @@ namespace UDPLogger
 
                     try
                     {
-                        var now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-                        if (now - lastPacketTimestamp > 10000 || disconnect)
+                        if(udpClient != null)
+                        {
+                            var now = Now();
+
+                            if (now - lastPacketTimestamp > PACKET_TIMEOUT || disconnect)
+                            {
+                                disconnect = false;
+                                clientConnected = false;
+
+                                udpClient.Close();
+                                udpClient = null;
+                            }
+
+                            var lastPingDiff = (now - lastPingTimestamp);
+                            if (clientConnected && lastPingDiff >= PING_TIMEOUT)
+                            {
+                                ping = true;
+                            }
+                        }
+                        else
                         {
                             disconnect = false;
-                            clientConnected = false;
-                        }
-
-                        if (clientConnected && now - lastPingTimestamp > 5000)
-                        {
-                            ping = true;
-                            lastPingTimestamp = now;
                         }
 
                         if (oldConnectionStatus != clientConnected)
@@ -133,22 +156,22 @@ namespace UDPLogger
             {
                 if (args.UserState is UdpWorkerGridDataReport gridDataReport)
                 {
-                    ReportGridDataEvent(this, new(gridDataReport.GridDataList));
+                    ReceivedDataEvent(this, new(gridDataReport.ReceivedDataList));
                 }
                 else if (args.UserState is UdpWorkeConnectionStatusReport connectionStatusReport)
                 {
-                    ReportConnectionStatusEvent(this, new(connectionStatusReport.ConnectionStatus));
+                    ConnectionStatusEvent(this, new(connectionStatusReport.ConnectionStatus));
                 }
             };
 
             udpWorker.RunWorkerAsync();
         }
 
-        private void UDPSend(UdpClient udpClient)
+        private void UDPSend(ref UdpClient? udpClient)
         {
             if (udpSendTask == null)
             {
-                if (connect)
+                if (connect && !string.IsNullOrEmpty(this.ipString))
                 {
                     connect = false;
 
@@ -157,16 +180,22 @@ namespace UDPLogger
                     sendBuffer[1] = CMD_CONN;
                     sendBuffer[2] = ETX;
 
-                    var ipAddress = IPAddress.Parse(this.ipAddress);
+                    if(IPAddress.TryParse(this.ipString, out IPAddress? IP) && IP != null && localPort > 0 && remotePort > 0)
+                    {
+                        udpClient?.Close();
 
-                    udpClient.Connect(ipAddress, PLC_PORT);
-                    udpSendTask = udpClient.SendAsync(sendBuffer, sendBuffer.Length);
+                        udpClient = new(localPort);
+                        udpClient.Connect(IP, remotePort);
+                        udpSendTask = udpClient.SendAsync(sendBuffer, sendBuffer.Length);
+
+                        lastPacketTimestamp = lastPingTimestamp = Now();
+                    }
                 }
                 else if (ping)
                 {
                     ping = false;
 
-                    if (clientConnected)
+                    if (udpClient != null && clientConnected)
                     {
                         var sendBuffer = new byte[3];
                         sendBuffer[0] = STX;
@@ -174,6 +203,8 @@ namespace UDPLogger
                         sendBuffer[2] = ETX;
 
                         udpSendTask = udpClient.SendAsync(sendBuffer, sendBuffer.Length);
+
+                        lastPingTimestamp = Now();
                     }
                 }
             }
@@ -184,16 +215,15 @@ namespace UDPLogger
 
         }
 
-        private List<GridData>? UDPReceive(UdpClient udpClient)
+        private List<UDPReceivedData>? UDPReceive(ref UdpClient? udpClient)
         {
-            var now = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-            if (!udpClient.Client.Connected)
+            if (udpClient == null)
             {
                 udpReceiveTask = null;
                 return null;
             }
 
-            List<GridData>? gridDataList = null;
+            List<UDPReceivedData>? receivedDataList = null;
 
             if (udpReceiveTask != null && udpReceiveTask.IsCompletedSuccessfully)
             {
@@ -213,14 +243,14 @@ namespace UDPLogger
                     {
                         if (valuesBuffer.Length == 2 && valuesBuffer[0] == 0xB0 && valuesBuffer[1] == 0x0B)
                         {
-                            lastPingTimestamp = lastPacketTimestamp = now;
+                            lastPingTimestamp = lastPacketTimestamp = Now();
                             clientConnected = true;
                         }
                         else if (clientConnected)
                         {
                             try
                             {
-                                gridDataList = ParseDataBuffer(valuesBuffer);
+                                receivedDataList = ParseDataBuffer(valuesBuffer);
                             }
                             catch (Exception ex)
                             {
@@ -228,7 +258,7 @@ namespace UDPLogger
                                 disconnect = true; //This is to not trigger infinite exception causing lag and high cpu load.
                             }
 
-                            lastPacketTimestamp = now;
+                            lastPacketTimestamp = Now();
                         }
                     }
                 }
@@ -239,26 +269,27 @@ namespace UDPLogger
                 udpReceiveTask = udpClient.ReceiveAsync();
             }
 
-            return gridDataList;
+            return receivedDataList;
         }
 
-        private static List<GridData> ParseDataBuffer(ReadOnlySpan<byte> buffer)
+        private static List<UDPReceivedData> ParseDataBuffer(ReadOnlySpan<byte> buffer)
         {
-            List<GridData> recvDataList = [];
+            List<UDPReceivedData> recvDataList = [];
 
             int offset = 0;
             while (true)
             {
-                string paramName = "";
-                while (true)
-                {
-                    char recvChar = (char)buffer[offset++];
-                    if (recvChar == DNE)
-                    {
-                        break;
-                    }
+                var nameLen = buffer[offset++];
 
-                    paramName += recvChar;
+                var nameBuffer = buffer[offset .. (offset + nameLen)];
+                offset += nameLen;
+
+                var nameEscape = buffer[offset++];
+
+                string? paramName = UDPTypeConverter.ConvertString(nameBuffer);
+                if (paramName == null || nameEscape != DNE) //If after name there is no escape, it will be considered invalid!
+                {
+                    break;
                 }
 
                 var dataIdentifier = buffer[offset++];
@@ -269,23 +300,13 @@ namespace UDPLogger
 
                 var dataEscape = buffer[offset++];
 
-                var type = UDPType.GetByIdentifier(dataIdentifier);
-                if (type == null)
+                var data = UDPTypeConverter.Convert(dataIdentifier, dataBuffer);
+                if (data == null || dataEscape != DVE) //If after data there is no escape, it will be considered invalid!
                 {
                     break;
                 }
 
-                var data = type.Convert(dataBuffer);
-                if (data == null)
-                {
-                    break;
-                }
-                else if (dataEscape != DVE) //If after data there is no escape, i will consider data to be invalid!
-                {
-                    break;
-                }
-
-                recvDataList.Add(new() { Name = paramName, Value = data });
+                recvDataList.Add(new(paramName, data));
 
                 if (offset >= buffer.Length)
                 {
@@ -294,6 +315,11 @@ namespace UDPLogger
             }
 
             return recvDataList;
+        }
+
+        private static long Now()
+        {
+            return DateTimeOffset.Now.ToUnixTimeMilliseconds();
         }
     }
 }

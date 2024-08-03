@@ -5,15 +5,16 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:UDPLogger"
         mc:Ignorable="d"
-        Title="UDPLogger" Height="450" Width="800" Padding="2,0,0,0">
+        Title="UDPLogger" Height="450" Width="800" Padding="2,0,0,0" BorderThickness="2,2,2,2">
     <DockPanel Margin="4,4,4,4">
+        <Menu DockPanel.Dock="Top" BorderBrush="#FF676666" Foreground="Black" FontSize="16" Background="{x:Null}">
+            <MenuItem x:Name="SettingsMenuItem" FontSize="16" Header="File" Foreground="Black">
+                <MenuItem Header="Settings" Click="MenuItem_Click"/>
+            </MenuItem>
+        </Menu>
         <WrapPanel HorizontalAlignment="Left" DockPanel.Dock="Top" Margin="5,5,5,5">
-            <Button x:Name="StartButton" Content="Start Comunicazione" Margin="4,0,4,0" Background="{x:Null}" BorderBrush="Black"/>
-            <Button x:Name="StopButton" Content="Stop Comunicazione" Background="{x:Null}" BorderBrush="Black" Margin="4,0,4,0"/>
-            <DockPanel x:Name="IPDockPanel" LastChildFill="False" Margin="4,0,4,0">
-                <Label x:Name="IPLabel" Content="Indirizzo IP" DockPanel.Dock="Left"/>
-                <TextBox x:Name="IPTextBox" TextWrapping="Wrap" DockPanel.Dock="Right" VerticalAlignment="Center" BorderBrush="Black" Background="{x:Null}" Text="{Binding IPAddressProperty, RelativeSource={RelativeSource FindAncestor, AncestorType={x:Type local:MainWindow}}}"/>
-            </DockPanel>
+            <Button x:Name="StartButton" Content="Start " Margin="4,0,4,0" Background="{x:Null}" BorderBrush="Black" Padding="7,7,7,7"/>
+            <Button x:Name="StopButton" Content="Stop" Background="{x:Null}" BorderBrush="Black" Margin="4,0,4,0" Padding="7,7,7,7" />
         </WrapPanel>
         <StackPanel DockPanel.Dock="Bottom">
             <DataGrid x:Name="DataGrid"/>

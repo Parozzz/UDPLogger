@@ -11,15 +11,19 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <Optimize>False</Optimize>
+    <Optimize>True</Optimize>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
 
   <ItemGroup>
     <Content Include="a8rpp-bwhk5-001.ico" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />
     <PackageReference Include="SQLite" Version="3.13.0" />
+    <PackageReference Include="WindowsAPICodePack" Version="8.0.4" />
   </ItemGroup>
 
   <ItemGroup>

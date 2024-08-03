@@ -1,11 +1,7 @@
-﻿using System.Buffers.Binary;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Net;
-using System.Net.Sockets;
+﻿using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Media;
+using UDPLogger.Configuration;
 
 namespace UDPLogger
 {
@@ -14,37 +10,31 @@ namespace UDPLogger
     /// </summary>
     public partial class MainWindow : Window
     {
-        public class GridData
+        public class GridData(string name, object value, DateTime lastUpdate)
         {
-            public string? Name { get; set; }
-            public object? Value { get; set; }
+            public string Name { get; set; } = name;
+            public object Value { get; set; } = value;
+            public DateTime LastUpdate { get; set; } = lastUpdate;
         }
-
-        public const byte STX = 0x02; //START
-        public const byte ETX = 0x03; //END
-        public const byte DNE = 0x04; //DATA NAME ESCAPE
-        public const byte DVE = 0x05; //DATA VALUE ESCAPE
-
-        public const byte CMD_STOP = 1;
-        public const byte CMD_CONN = 2;
-        public const byte CMD_PING = 3;
 
         private readonly ObservableCollection<GridData> gridDataItemSource = [];
 
-        public string IPAddressProperty { get => ipString; set => ipString = value; }
-        private volatile string ipString = "172.16.9.179";
-
+        public ConfigurationFile Configuration { get; init; }
         private readonly UDPSocketHandler udpSocketHandler;
-
 
         public MainWindow()
         {
-            InitializeComponent();
+            this.Configuration = ConfigurationFile.Load();
+            this.Configuration.Save();
 
-            udpSocketHandler = new();
-            udpSocketHandler.ReportGridDataEvent += (sender, args) =>
+            InitializeComponent(); //Since components are binded to configuration directly, this assure they are loaded with current values.
+
+            this.udpSocketHandler = new();
+            this.udpSocketHandler.ReceivedDataEvent += (sender, args) =>
             {
-                var receivedDataList = args.GridDataList;
+                var now = DateTime.Now;
+
+                var receivedDataList = args.ReceivedDataList;
 
                 var anyChanged = false;
                 foreach (var receivedData in receivedDataList)
@@ -52,12 +42,13 @@ namespace UDPLogger
                     var gridData = gridDataItemSource.Where(data => receivedData.Name == data.Name).FirstOrDefault();
                     if (gridData == null)
                     {
-                        gridDataItemSource.Add(receivedData);
+                        gridDataItemSource.Add(new(receivedData.Name, receivedData.Data, now));
                         anyChanged = true;
                     }
-                    else if (gridData.Value == null || !gridData.Value.Equals(receivedData.Value))
+                    else if (gridData.Value == null || !gridData.Value.Equals(receivedData.Data))
                     {
-                        gridData.Value = receivedData.Value;
+                        gridData.Value = receivedData.Data;
+                        gridData.LastUpdate = now;
                         anyChanged = true;
                     }
                 }
@@ -68,7 +59,7 @@ namespace UDPLogger
                 }
             };
 
-            udpSocketHandler.ReportConnectionStatusEvent += (sender, args) =>
+            this.udpSocketHandler.ConnectionStatusEvent += (sender, args) =>
             {
                 if (args.ConnectionStatus)
                 {
@@ -82,12 +73,17 @@ namespace UDPLogger
                 }
             };
 
-            StartButton.Click += (sender, args) => udpSocketHandler.Connect(this.ipString);
-            StopButton.Click += (sender, args) => udpSocketHandler.Disconnect();
+            this.StartButton.Click += (sender, args) => udpSocketHandler.Connect(this.Configuration.IPAddress, this.Configuration.RemotePort, this.Configuration.LocalPort);
+            this.StopButton.Click += (sender, args) => udpSocketHandler.Disconnect();
 
             this.DataGrid.ItemsSource = gridDataItemSource;
 
-            udpSocketHandler.StartWorker();
+            this.udpSocketHandler.StartWorker();
+        }
+
+        private void MenuItem_Click(object sender, RoutedEventArgs e)
+        {
+            new ConfigurationWindow(this.Configuration).ShowDialog();
         }
     }
 }
