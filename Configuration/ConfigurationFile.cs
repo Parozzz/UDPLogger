@@ -23,6 +23,7 @@ namespace UDPLogger
         public string IPAddress { get; set; } = "172.16.4.1";
         public int RemotePort { get; set; } = 8958;
         public int LocalPort { get; set; } = 10000;
+        public string DatabaseFoldersPath { get; set; } = Directory.GetCurrentDirectory() + "/database";
 
         public void Save()
         {

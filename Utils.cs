@@ -8,13 +8,9 @@ namespace UDPLogger
 {
     public static class Utils
     {
-        public static byte[] FixRecvBuffer(byte[] buffer)
+        public static long Now()
         {
-            if (!BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(buffer);
-            }
-            return buffer;
+            return DateTimeOffset.Now.ToUnixTimeMilliseconds();
         }
 
     }
