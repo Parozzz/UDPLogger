@@ -13,7 +13,7 @@ namespace UDPLogger
     public class ConfigurationFile
     {
         private static readonly string PATH = Directory.GetCurrentDirectory() + "/configuration.json";
-        private static JsonSerializerOptions OPTIONS = new()
+        private static readonly JsonSerializerOptions OPTIONS = new()
         {
             WriteIndented = true,
             DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
@@ -23,7 +23,12 @@ namespace UDPLogger
         public string IPAddress { get; set; } = "172.16.4.1";
         public int RemotePort { get; set; } = 8958;
         public int LocalPort { get; set; } = 10000;
-        public string DatabaseFoldersPath { get; set; } = Directory.GetCurrentDirectory() + "/database";
+        public string DatabasePath { get; set; } = "~\\database.db";
+
+        public string GetFullDatabasePath()
+        {
+            return DatabasePath.Replace("~\\", Directory.GetCurrentDirectory() + "\\");
+        }
 
         public void Save()
         {

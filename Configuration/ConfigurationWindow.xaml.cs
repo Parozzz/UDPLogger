@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Microsoft.WindowsAPICodePack.Dialogs;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,7 +27,32 @@ namespace UDPLogger.Configuration
             InitializeComponent();
 
             this.configurationFile = configurationFile;
+
+            Init();
             LoadConfiguration();
+        }
+
+        private void Init()
+        {
+            this.DatabasePathPickButton.Click += (sender, args) =>
+            {
+                CommonOpenFileDialog dialog = new()
+                {
+                    DefaultExtension = ".db"
+                };
+
+                if (dialog.ShowDialog() == CommonFileDialogResult.Ok)
+                {
+                    var fileName = dialog.FileName;
+                    if(fileName == null)
+                    {
+                        return;
+                    }
+
+                    fileName = fileName.Replace(Directory.GetCurrentDirectory(), "~\\");
+                    this.DatabasePathTextBox.Text = fileName;
+                }
+            };
         }
 
         public void LoadConfiguration()
@@ -33,6 +60,7 @@ namespace UDPLogger.Configuration
             this.IPAddressTextBox.Text = this.configurationFile.IPAddress;
             this.RemotePortTextBox.Text = "" + this.configurationFile.RemotePort;
             this.LocalPortTextBox.Text = "" + this.configurationFile.LocalPort;
+            this.DatabasePathTextBox.Text = "" + this.configurationFile.DatabasePath;
         }
 
         private void SaveButton_Click(object sender, RoutedEventArgs e)
@@ -46,6 +74,7 @@ namespace UDPLogger.Configuration
             {
                 this.configurationFile.LocalPort = localPort;
             }
+            configurationFile.DatabasePath = this.DatabasePathTextBox.Text;
 
             this.configurationFile.Save();
 

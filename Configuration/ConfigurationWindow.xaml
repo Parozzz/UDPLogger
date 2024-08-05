@@ -10,23 +10,31 @@
         <DockPanel LastChildFill="False" DockPanel.Dock="Top">
             <StackPanel Background="White" DockPanel.Dock="Left" Margin="0,0,4,0">
                 <StackPanel.Resources>
-                    <Style TargetType="{x:Type Label}">
+                    <Style TargetType="Label">
                         <Setter Property="Margin" Value="0,4,0,0"/>
                     </Style>
                 </StackPanel.Resources>
                 <Label Content="IP Address" FontSize="20" Height="40"/>
                 <Label Content="Remote Port" FontSize="20" Height="40"/>
                 <Label Content="Local Port" FontSize="20" Height="40"/>
+                <Label Content="Database Path" FontSize="20" Height="40"/>
             </StackPanel>
-            <StackPanel DockPanel.Dock="Right" Width="150">
+            <StackPanel DockPanel.Dock="Right" MinWidth="250">
                 <StackPanel.Resources>
-                    <Style TargetType="{x:Type TextBox}">
+                    <Style TargetType="TextBox">
+                        <Setter Property="Margin" Value="0,4,0,0"/>
+                    </Style>
+                    <Style TargetType="DockPanel">
                         <Setter Property="Margin" Value="0,4,0,0"/>
                     </Style>
                 </StackPanel.Resources>
                 <TextBox x:Name="IPAddressTextBox" TextWrapping="WrapWithOverflow" Text="172.16.4.1" FontSize="20" Height="40" TextAlignment="Center" VerticalContentAlignment="Center"/>
                 <TextBox x:Name="RemotePortTextBox" TextWrapping="WrapWithOverflow" Text="80" FontSize="20" Height="40" TextAlignment="Center" VerticalContentAlignment="Center"/>
                 <TextBox x:Name="LocalPortTextBox" TextWrapping="WrapWithOverflow" Text="80" FontSize="20" Height="40" TextAlignment="Center" VerticalContentAlignment="Center"/>
+                <DockPanel Height="40" LastChildFill="true">
+                    <Button x:Name="DatabasePathPickButton" Content="Pick" FontSize="12" Background="{x:Null}" Width="25" DockPanel.Dock="Right" VerticalAlignment="Center" Margin="2,2,2,2"/>
+                    <TextBox x:Name="DatabasePathTextBox" TextWrapping="WrapWithOverflow" Text="database.db" FontSize="11" TextAlignment="Center" VerticalContentAlignment="Center" Margin="0,0,6,0" DockPanel.Dock="Left"/>
+                </DockPanel>
             </StackPanel>
         </DockPanel>
         <ToolBarPanel DockPanel.Dock="Bottom" Margin="5,5,5,0">

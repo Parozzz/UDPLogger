@@ -73,5 +73,18 @@ namespace UDPLogger
                 _ => null
             };
         }
+
+        public static object? ConvertFromString(byte identifier, string stringValue)
+        {
+            return identifier switch
+            {
+                TYPE_IDENTIFIER_BOOL => bool.Parse(stringValue),
+                TYPE_IDENTIFIER_UINT => ulong.Parse(stringValue),
+                TYPE_IDENTIFIER_INT => long.Parse(stringValue),
+                TYPE_IDENTIFIER_REAL => double.Parse(stringValue),
+                TYPE_IDENTIFIER_STRING => stringValue,
+                _ => null
+            };
+        }
     }
 }

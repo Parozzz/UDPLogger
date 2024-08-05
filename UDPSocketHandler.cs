@@ -21,7 +21,7 @@ namespace UDPLogger
         public delegate void ConnectionStatusEventHandler(object? sender, ConnectionStatusEventArgs args);
         public record ConnectionStatusEventArgs(bool ConnectionStatus);
 
-        public record UDPReceivedData(string Name, object Data);
+        public record UDPReceivedData(string Name, int DataIdentifier, object Data);
 
         public event ReceivedDataEventHandler ReceivedDataEvent = delegate { };
         public event ConnectionStatusEventHandler ConnectionStatusEvent = delegate { };
@@ -96,7 +96,11 @@ namespace UDPLogger
                     catch (Exception ex)
                     {
                         Debug.Write("UDPSend Exception: " + ex.ToString());
+
                         clientConnected = false;
+
+                        udpClient?.Close();
+                        udpClient = null;
                     }
 
                     Thread.Sleep(1);
@@ -108,7 +112,11 @@ namespace UDPLogger
                     catch (Exception ex)
                     {
                         Debug.Write("UDPReceive Exception: " + ex.ToString());
+
                         clientConnected = false;
+
+                        udpClient?.Close();
+                        udpClient = null;
                     }
 
                     Thread.Sleep(1);
@@ -145,6 +153,11 @@ namespace UDPLogger
                     catch (Exception ex)
                     {
                         Debug.Write("UDP Handling Exception: " + ex.ToString());
+
+                        clientConnected = false;
+
+                        udpClient?.Close();
+                        udpClient = null;
                     }
                 }
             };
@@ -262,10 +275,16 @@ namespace UDPLogger
                 return;
             }
 
+            var totalPacketLen = BinaryPrimitives.ReadUInt16LittleEndian(buffer[1..3]);
+            if(totalPacketLen != buffer.Length)
+            {
+                return;
+            }
+
             var checksumRecv = BinaryPrimitives.ReadUInt16LittleEndian(buffer[^3..^1]);
             var checksumCalc = 0;
 
-            var valuesBuffer = buffer[1..^3];
+            var valuesBuffer = buffer[3..^3];
             foreach (var i in valuesBuffer)
             {
                 checksumCalc ^= i;
@@ -331,7 +350,7 @@ namespace UDPLogger
                     break;
                 }
 
-                dataList.Add(new(paramName, data));
+                dataList.Add(new(paramName, dataIdentifier, data));
 
                 if (offset >= buffer.Length)
                 {//If the offset goes above the buffer length it means everything has been parsed correctly and move the parsed data to be sent.
