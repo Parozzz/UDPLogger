@@ -7,7 +7,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <PackageIcon>noun-log-5788780.png</PackageIcon>
-    <ApplicationIcon>a8rpp-bwhk5-001.ico</ApplicationIcon>
+    <ApplicationIcon>Images\a8rpp-bwhk5-001.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -17,17 +17,18 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'" />
 
   <ItemGroup>
-    <Content Include="a8rpp-bwhk5-001.ico" />
+    <Content Include="Images\a8rpp-bwhk5-001.ico" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Extended.Wpf.Toolkit" Version="4.6.1" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.7" />
     <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />
     <PackageReference Include="WindowsAPICodePack" Version="8.0.4" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="noun-log-5788780.png">
+    <None Update="Images\noun-log-5788780.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>

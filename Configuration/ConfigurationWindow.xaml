@@ -28,7 +28,10 @@
                         <Setter Property="Margin" Value="0,4,0,0"/>
                     </Style>
                 </StackPanel.Resources>
-                <TextBox x:Name="IPAddressTextBox" TextWrapping="WrapWithOverflow" Text="172.16.4.1" FontSize="20" Height="40" TextAlignment="Center" VerticalContentAlignment="Center"/>
+                <DockPanel LastChildFill="True" Height="40">
+                    <Button x:Name="SearchButton" Content="Search" Width="NaN" FontSize="12" DockPanel.Dock="Right" VerticalAlignment="Center" Background="{x:Null}"/>
+                    <TextBox x:Name="IPAddressTextBox" TextWrapping="WrapWithOverflow" Text="172.16.4.1" FontSize="20" TextAlignment="Center" VerticalContentAlignment="Center" DockPanel.Dock="Left" Background="{x:Null}" Margin="0,0,6,0"/>
+                </DockPanel>
                 <TextBox x:Name="RemotePortTextBox" TextWrapping="WrapWithOverflow" Text="80" FontSize="20" Height="40" TextAlignment="Center" VerticalContentAlignment="Center"/>
                 <TextBox x:Name="LocalPortTextBox" TextWrapping="WrapWithOverflow" Text="80" FontSize="20" Height="40" TextAlignment="Center" VerticalContentAlignment="Center"/>
                 <DockPanel Height="40" LastChildFill="true">

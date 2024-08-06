@@ -1,0 +1,21 @@
+﻿<Window x:Class="UDPLogger.Configuration.FindDevicesWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:UDPLogger.Configuration"
+        mc:Ignorable="d"
+        Title="Find Devices" SizeToContent="WidthAndHeight">
+    <DockPanel LastChildFill="True" Margin="5,5,5,5" MinWidth="400" MinHeight="250">
+        <ToolBarPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Margin="5,5,5,0">
+            <Button x:Name="RefreshButton" Content="Refresh" Margin="5,0,5,0" Background="{x:Null}" Padding="3,3,3,3"/>
+            <DockPanel LastChildFill="False">
+                <Label Content="Broadcast Port" DockPanel.Dock="Left"/>
+                <TextBox x:Name="BroadcastPortTextBox" TextWrapping="Wrap" Text="10050" Width="50" DockPanel.Dock="Right" VerticalAlignment="Center" HorizontalContentAlignment="Center"/>
+            </DockPanel>
+            <Button x:Name="AcceptSelectedButton" Content="Accept" Margin="5,0,5,0" Background="{x:Null}" Padding="3,3,3,3"/>
+        </ToolBarPanel>
+        <DataGrid x:Name="ResultGridView" d:ItemsSource="{d:SampleData ItemCount=5}" DockPanel.Dock="Bottom" Background="{x:Null}">
+        </DataGrid>
+    </DockPanel>
+</Window>

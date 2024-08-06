@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Buffers.Binary;
 
-namespace UDPLogger
+namespace UDPLogger.UDP
 {
     public static class UDPTypeConverter
     {
@@ -14,7 +14,7 @@ namespace UDPLogger
 
         public static bool? ConvertBool(ReadOnlySpan<byte> dataBuffer)
         {
-            return (dataBuffer[0] == 1);
+            return dataBuffer[0] == 1;
         }
 
         public static ulong? ConvertUInt(ReadOnlySpan<byte> dataBuffer)

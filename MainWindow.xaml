@@ -15,6 +15,11 @@
         <WrapPanel HorizontalAlignment="Left" DockPanel.Dock="Top" Margin="5,5,5,5">
             <Button x:Name="StartButton" Content="Start " Margin="4,0,4,0" Background="{x:Null}" BorderBrush="Black" Padding="7,7,7,7"/>
             <Button x:Name="StopButton" Content="Stop" Background="{x:Null}" BorderBrush="Black" Margin="4,0,4,0" Padding="7,7,7,7" />
+            <Button x:Name="PurgeDatabaseButton" Content="Purge Database" Background="{x:Null}" BorderBrush="Black" Padding="7,7,7,7" />
+            <DockPanel VerticalAlignment="Center" LastChildFill="False">
+                <Label Content="Database Size" VerticalAlignment="Center" DockPanel.Dock="Left"/>
+                <TextBox x:Name="DatabaseSizeTextBox" TextWrapping="Wrap" Text="0 kb" IsReadOnly="True" VerticalAlignment="Center" DockPanel.Dock="Right" BorderBrush="{x:Null}"/>
+            </DockPanel>
         </WrapPanel>
         <StackPanel DockPanel.Dock="Bottom">
             <DataGrid x:Name="DataGrid"/>

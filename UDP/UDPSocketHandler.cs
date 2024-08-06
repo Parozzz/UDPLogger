@@ -1,13 +1,11 @@
 ﻿using System.Buffers.Binary;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Windows;
-using static UDPLogger.MainWindow;
 
-namespace UDPLogger
+namespace UDPLogger.UDP
 {
     public class UDPSocketHandler
     {
@@ -21,22 +19,8 @@ namespace UDPLogger
         public delegate void ConnectionStatusEventHandler(object? sender, ConnectionStatusEventArgs args);
         public record ConnectionStatusEventArgs(bool ConnectionStatus);
 
-        public record UDPReceivedData(string Name, int DataIdentifier, object Data);
-
         public event ReceivedDataEventHandler ReceivedDataEvent = delegate { };
         public event ConnectionStatusEventHandler ConnectionStatusEvent = delegate { };
-
-        public const byte STX = 0x02; //START
-        public const byte ETX = 0x03; //END
-        public const byte DNE = 0x04; //DATA NAME ESCAPE
-        public const byte DVE = 0x05; //DATA VALUE ESCAPE
-
-        public const byte CMD_STOP = 1;
-        public const byte CMD_CONN = 2;
-        public const byte CMD_PING = 3;
-
-        public const int PING_TIMEOUT = 1000; //ms
-        public const int PACKET_TIMEOUT = 2500; //ms
 
         private readonly BackgroundWorker udpWorker;
 
@@ -62,23 +46,23 @@ namespace UDPLogger
 
         public UDPSocketHandler()
         {
-            this.udpWorker = new() { WorkerReportsProgress = true, WorkerSupportsCancellation = true };
+            udpWorker = new() { WorkerReportsProgress = true, WorkerSupportsCancellation = true };
 
             Application.Current.Dispatcher.ShutdownStarted += (sender, args) => udpWorker.CancelAsync();
         }
 
         public void Connect(string ipAddress, int remotePort, int localPort)
         {
-            this.ipString = ipAddress;
+            ipString = ipAddress;
             this.remotePort = remotePort;
             this.localPort = localPort;
 
-            this.connect = true; //AFTER! FOR ASYNC MATTERS!
+            connect = true; //AFTER! FOR ASYNC MATTERS!
         }
 
         public void Disconnect()
         {
-            this.disconnect = true;
+            disconnect = true;
         }
 
         public void StartWorker()
@@ -96,11 +80,7 @@ namespace UDPLogger
                     catch (Exception ex)
                     {
                         Debug.Write("UDPSend Exception: " + ex.ToString());
-
-                        clientConnected = false;
-
-                        udpClient?.Close();
-                        udpClient = null;
+                        DisconnectClient();
                     }
 
                     Thread.Sleep(1);
@@ -112,11 +92,7 @@ namespace UDPLogger
                     catch (Exception ex)
                     {
                         Debug.Write("UDPReceive Exception: " + ex.ToString());
-
-                        clientConnected = false;
-
-                        udpClient?.Close();
-                        udpClient = null;
+                        DisconnectClient();
                     }
 
                     Thread.Sleep(1);
@@ -126,21 +102,21 @@ namespace UDPLogger
                         if (udpClient != null)
                         {
                             var now = Utils.Now();
-                            if (now - lastPacketTimestamp > PACKET_TIMEOUT)
+                            if (now - lastPacketTimestamp > UDPConstants.PACKET_TIMEOUT)
                             {
                                 clientConnected = false;
                             }
 
-                            if (clientConnected && (now - lastPingTimestamp) >= PING_TIMEOUT)
+                            if (clientConnected && now - lastPingTimestamp >= UDPConstants.PING_TIMEOUT)
                             {
                                 ping = true;
                             }
                         }
 
-                        if (this.receivedDataList != null)
+                        if (receivedDataList != null)
                         {
                             udpWorker.ReportProgress(0, new UdpWorkerGridDataReport(receivedDataList));
-                            this.receivedDataList = null;
+                            receivedDataList = null;
                         }
 
                         if (oldConnectionStatus != clientConnected)
@@ -153,11 +129,7 @@ namespace UDPLogger
                     catch (Exception ex)
                     {
                         Debug.Write("UDP Handling Exception: " + ex.ToString());
-
-                        clientConnected = false;
-
-                        udpClient?.Close();
-                        udpClient = null;
+                        DisconnectClient();
                     }
                 }
             };
@@ -189,7 +161,7 @@ namespace UDPLogger
                 {
                     connect = false;
 
-                    if (IPAddress.TryParse(this.ipString, out IPAddress? IP) && IP != null && localPort > 0 && remotePort > 0)
+                    if (IPAddress.TryParse(ipString, out IPAddress? IP) && IP != null && localPort > 0 && remotePort > 0)
                     {
                         udpClient?.Close();
 
@@ -197,9 +169,9 @@ namespace UDPLogger
                         udpClient.Connect(IP, remotePort);
 
                         var sendBuffer = new byte[3];
-                        sendBuffer[0] = STX;
-                        sendBuffer[1] = CMD_CONN;
-                        sendBuffer[2] = ETX;
+                        sendBuffer[0] = UDPConstants.STX;
+                        sendBuffer[1] = UDPConstants.CMD_CONN;
+                        sendBuffer[2] = UDPConstants.ETX;
                         udpSendTask = udpClient.SendAsync(sendBuffer, sendBuffer.Length);
 
                         lastPacketTimestamp = lastPingTimestamp = Utils.Now();
@@ -212,9 +184,9 @@ namespace UDPLogger
                     if (udpClient != null && clientConnected)
                     {
                         var sendBuffer = new byte[3];
-                        sendBuffer[0] = STX;
-                        sendBuffer[1] = CMD_PING;
-                        sendBuffer[2] = ETX;
+                        sendBuffer[0] = UDPConstants.STX;
+                        sendBuffer[1] = UDPConstants.CMD_PING;
+                        sendBuffer[2] = UDPConstants.ETX;
                         udpSendTask = udpClient.SendAsync(sendBuffer, sendBuffer.Length);
 
                         lastPingTimestamp = Utils.Now();
@@ -226,21 +198,25 @@ namespace UDPLogger
                     if (udpClient != null && clientConnected)
                     {
                         var sendBuffer = new byte[3];
-                        sendBuffer[0] = STX;
-                        sendBuffer[1] = CMD_STOP;
-                        sendBuffer[2] = ETX;
+                        sendBuffer[0] = UDPConstants.STX;
+                        sendBuffer[1] = UDPConstants.CMD_STOP;
+                        sendBuffer[2] = UDPConstants.ETX;
                         udpClient.Send(sendBuffer, sendBuffer.Length); //This is done SYNC since later i will close the Socket.
 
-                        clientConnected = false;
-
-                        udpClient.Close();
-                        udpClient = null;
+                        DisconnectClient();
                     }
                 }
             }
         }
 
-        private bool bufferParsed = false;
+        private void DisconnectClient()
+        {
+            clientConnected = false;
+
+            udpClient?.Close();
+            udpClient = null;
+        }
+
         private void UDPReceive()
         {
             if (udpClient == null)
@@ -257,26 +233,26 @@ namespace UDPLogger
 
                 udpReceiveTask = udpClient.ReceiveAsync();
             }
-            else if(udpReceiveTask.IsCompleted) //This also takes care of task faulted!
+            else if (udpReceiveTask.IsCompleted) //This also takes care of task faulted!
             {
-                udpReceiveTask = udpClient.ReceiveAsync();
-
-                if(udpReceiveTask.Exception != null)
+                if (udpReceiveTask.Exception != null)
                 {
-                    Debug.WriteLine(udpReceiveTask.Exception.Message + '\n' + udpReceiveTask.Exception.StackTrace);
+                    Debug.WriteLine("UDPReceiveTask Exception.\n" + udpReceiveTask.Exception.Message + '\n' + udpReceiveTask.Exception.StackTrace);
                 }
+
+                udpReceiveTask = udpClient.ReceiveAsync();
             }
         }
 
         private void ParseReceivedBuffer(ReadOnlySpan<byte> buffer)
         {
-            if (buffer.Length <= 2 || buffer[0] != STX || buffer[^1] != ETX)
+            if (buffer.Length <= 2 || buffer[0] != UDPConstants.STX || buffer[^1] != UDPConstants.ETX)
             {
                 return;
             }
 
             var totalPacketLen = BinaryPrimitives.ReadUInt16LittleEndian(buffer[1..3]);
-            if(totalPacketLen != buffer.Length)
+            if (totalPacketLen != buffer.Length)
             {
                 return;
             }
@@ -289,8 +265,8 @@ namespace UDPLogger
             {
                 checksumCalc ^= i;
             }
-            
-            if(checksumRecv != checksumCalc)
+
+            if (checksumRecv != checksumCalc)
             {
                 return;
             }
@@ -331,10 +307,13 @@ namespace UDPLogger
                 var nameEscape = buffer[offset++];
 
                 string? paramName = UDPTypeConverter.ConvertString(nameBuffer);
-                if (paramName == null || nameEscape != DNE) //If after name there is no escape, it will be considered invalid!
+                if (paramName == null || nameEscape != UDPConstants.DNE) //If after name there is no escape, it will be considered invalid!
                 {
                     break;
                 }
+
+                var flagsByte = buffer[offset++];
+                UDPReceivedFlags flags = new(ForceInsert: flagsByte.GetBit(0));
 
                 var dataIdentifier = buffer[offset++];
                 var dataLen = buffer[offset++];
@@ -345,16 +324,16 @@ namespace UDPLogger
                 var dataEscape = buffer[offset++];
 
                 var data = UDPTypeConverter.Convert(dataIdentifier, dataBuffer);
-                if (data == null || dataEscape != DVE) //If after data there is no escape, it will be considered invalid!
+                if (data == null || dataEscape != UDPConstants.DVE) //If after data there is no escape, it will be considered invalid!
                 {
                     break;
                 }
 
-                dataList.Add(new(paramName, dataIdentifier, data));
+                dataList.Add(new(paramName, flags, dataIdentifier, data));
 
                 if (offset >= buffer.Length)
                 {//If the offset goes above the buffer length it means everything has been parsed correctly and move the parsed data to be sent.
-                    this.receivedDataList = dataList;
+                    receivedDataList = dataList;
                     break;
                 }
             }

@@ -53,6 +53,12 @@ namespace UDPLogger.Configuration
                     this.DatabasePathTextBox.Text = fileName;
                 }
             };
+
+            this.SearchButton.Click += (sender, args) =>
+            {
+                new FindDevicesWindow(this.configurationFile) { Owner = this }.ShowDialog();
+                this.LoadConfiguration();
+            };
         }
 
         public void LoadConfiguration()

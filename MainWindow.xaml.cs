@@ -1,8 +1,13 @@
 ﻿using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.IO;
+using System.Timers;
 using System.Windows;
 using System.Windows.Media;
+using System.Windows.Threading;
 using UDPLogger.Configuration;
-using static UDPLogger.UDPSocketHandler;
+using UDPLogger.SQLite;
+using UDPLogger.UDP;
 
 namespace UDPLogger
 {
@@ -24,7 +29,7 @@ namespace UDPLogger
         private readonly SQLiteHandler databaseHandler;
         private readonly UDPSocketHandler udpSocketHandler;
 
-        private bool recordLoaded = false;
+        private bool lastValuesLoaded = false;
 
         public MainWindow()
         {
@@ -33,8 +38,8 @@ namespace UDPLogger
 
             InitializeComponent(); //Since components are binded to configuration directly, this assure they are loaded with current values.
 
-            this.databaseHandler = new(Configuration);
-            this.databaseHandler.FetchResult += (sender, args) =>
+            this.databaseHandler = new();
+            this.databaseHandler.QueryResult += (sender, args) =>
             {
                 foreach (var record in args.RecordList)
                 {
@@ -45,9 +50,9 @@ namespace UDPLogger
                     }
                 }
                 this.DataGrid.Items.Refresh();
-                recordLoaded = true;
+                lastValuesLoaded = true;
             };
-            this.databaseHandler.StartWorker();
+            this.databaseHandler.StartWorker(Configuration.GetFullDatabasePath());
 
             this.udpSocketHandler = new();
             this.udpSocketHandler.ReceivedDataEvent += (sender, args) =>
@@ -59,22 +64,28 @@ namespace UDPLogger
                 var anyChanged = false;
                 foreach (var receivedData in receivedDataList)
                 {
+                    bool isChanged = false;
+
                     var gridData = gridDataItemSource.Where(data => receivedData.Name == data.Name).FirstOrDefault();
                     if (gridData == null)
                     {
                         gridDataItemSource.Add(new(receivedData.Name, receivedData.Data, now));
-                        anyChanged = true;
 
-                        this.databaseHandler.AddRecord(new(receivedData.Name, receivedData.DataIdentifier, "" + receivedData.Data, now));
+                        isChanged = true;
                     }
                     else if (gridData.Value == null || !gridData.Value.Equals(receivedData.Data))
                     {
                         gridData.Value = receivedData.Data;
                         gridData.LastUpdate = now;
-                        anyChanged = true;
 
+                        isChanged = true;
+                    }
+
+                    if(isChanged || receivedData.Flags.ForceInsert)
+                    {
                         this.databaseHandler.AddRecord(new(receivedData.Name, receivedData.DataIdentifier, "" + receivedData.Data, now));
                     }
+                    anyChanged |= isChanged;
                 }
 
                 if (anyChanged)
@@ -82,7 +93,6 @@ namespace UDPLogger
                     this.DataGrid.Items.Refresh();
                 }
             };
-
             this.udpSocketHandler.ConnectionStatusEvent += (sender, args) =>
             {
                 if (args.ConnectionStatus)
@@ -96,29 +106,44 @@ namespace UDPLogger
                     StopButton.Foreground = new SolidColorBrush(Colors.Red);
                 }
             };
+            this.udpSocketHandler.StartWorker();
 
             this.StartButton.Click += (sender, args) =>
             {
-                if(recordLoaded)
+                if(lastValuesLoaded)
                 {
                     udpSocketHandler.Connect(this.Configuration.IPAddress, this.Configuration.RemotePort, this.Configuration.LocalPort);
                 }
             };
             this.StopButton.Click += (sender, args) => udpSocketHandler.Disconnect();
+            this.PurgeDatabaseButton.Click += (sender, args) =>
+            {
+                new PurgeDatabaseWindow(databaseHandler) { Owner = this }.ShowDialog();
+            };
 
             this.DataGrid.ItemsSource = gridDataItemSource;
 
-            this.udpSocketHandler.StartWorker();
+            this.databaseHandler.QueryLastValues();
 
-            this.databaseHandler.FetchLastValues();
+            DispatcherTimer dispatcherTimer = new() { Interval = TimeSpan.FromSeconds(1) };
+            dispatcherTimer.Tick += (sender, args) =>
+            {
+                try
+                {
+                    var fileInfo = new FileInfo(Configuration.GetFullDatabasePath());
+                    this.DatabaseSizeTextBox.Text = fileInfo.FormatBytes();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine(ex.ToString());
+                }
+            };
+            dispatcherTimer.Start();
         }
 
         private void MenuItem_Click(object sender, RoutedEventArgs e)
         {
-            new ConfigurationWindow(this.Configuration)
-            {
-                Owner = this,
-            }.ShowDialog();
+            new ConfigurationWindow(this.Configuration) { Owner = this }.ShowDialog();
         }
     }
 }
