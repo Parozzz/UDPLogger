@@ -79,7 +79,7 @@ namespace UDPLogger.UDP
                     }
                     catch (Exception ex)
                     {
-                        Debug.Write("UDPSend Exception: " + ex.ToString());
+                        LoggerTXT.AddException("UDP Send Exception", ex);
                         DisconnectClient();
                     }
 
@@ -91,7 +91,7 @@ namespace UDPLogger.UDP
                     }
                     catch (Exception ex)
                     {
-                        Debug.Write("UDPReceive Exception: " + ex.ToString());
+                        LoggerTXT.AddException("UDP Receive Exception", ex);
                         DisconnectClient();
                     }
 
@@ -128,7 +128,7 @@ namespace UDPLogger.UDP
                     }
                     catch (Exception ex)
                     {
-                        Debug.Write("UDP Handling Exception: " + ex.ToString());
+                        LoggerTXT.AddException("UDP Handling Exception", ex);
                         DisconnectClient();
                     }
                 }
@@ -237,7 +237,10 @@ namespace UDPLogger.UDP
             {
                 if (udpReceiveTask.Exception != null)
                 {
-                    Debug.WriteLine("UDPReceiveTask Exception.\n" + udpReceiveTask.Exception.Message + '\n' + udpReceiveTask.Exception.StackTrace);
+                    foreach(var ex in udpReceiveTask.Exception.InnerExceptions)
+                    {
+                        LoggerTXT.AddException("UDPReceiveTask Exception", ex);
+                    }
                 }
 
                 udpReceiveTask = udpClient.ReceiveAsync();
@@ -284,7 +287,7 @@ namespace UDPLogger.UDP
                 }
                 catch (Exception ex)
                 {
-                    Debug.Write("ParseBuffer Exception: " + ex.ToString());
+                    LoggerTXT.AddException("ParseBuffer Exception", ex);
                     disconnect = true; //This is to not trigger infinite exception causing lag and high cpu load.
                 }
 
@@ -334,6 +337,7 @@ namespace UDPLogger.UDP
                 if (offset >= buffer.Length)
                 {//If the offset goes above the buffer length it means everything has been parsed correctly and move the parsed data to be sent.
                     receivedDataList = dataList;
+                    LoggerTXT.AddDebug("TEST");
                     break;
                 }
             }
