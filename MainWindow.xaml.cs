@@ -17,6 +17,8 @@ namespace UDPLogger
     /// </summary>
     public partial class MainWindow : Window
     {
+        public const string VERSION = "1.0.0";
+
         public class GridData(string name, object value, DateTime lastUpdate)
         {
             public string Name { get; set; } = name;

@@ -1,5 +1,4 @@
 ﻿using MsgBoxEx;
-using Ookii.Dialogs.Wpf;
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Globalization;
@@ -17,7 +16,7 @@ namespace UDPLogger
             ERROR
         }
 
-        private record LoggerEntry(string prefix, string message, string footer);
+        private record LoggerEntry(string Prefix, string Message, string Footer);
 
         private static readonly Lazy<LoggerTXT> lazy = new(() => new LoggerTXT(), isThreadSafe: true);
         public static LoggerTXT INSTANCE { get => lazy.Value; }
@@ -73,7 +72,7 @@ namespace UDPLogger
 
                         var path = Directory.GetCurrentDirectory() + "\\log.txt";
 
-                        var str = $"{entry.prefix}{entry.message}{entry.footer}{Environment.NewLine}";
+                        var str = $"{entry.Prefix}{entry.Message}{entry.Footer}{Environment.NewLine}";
                         File.AppendAllText(path, str);
 #if DEBUG
                         Debug.WriteLine(entry.message);

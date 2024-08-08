@@ -8,6 +8,7 @@
     <UseWPF>true</UseWPF>
     <PackageIcon>noun-log-5788780.png</PackageIcon>
     <ApplicationIcon>Images\a8rpp-bwhk5-001.ico</ApplicationIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
@@ -23,12 +24,15 @@
   <ItemGroup>
     <PackageReference Include="Extended.Wpf.Toolkit" Version="4.6.1" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.7" />
-    <PackageReference Include="Ookii.Dialogs.Wpf" Version="5.0.1" />
     <PackageReference Include="WindowsAPICodePack" Version="8.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <None Update="Images\noun-log-5788780.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Update="README.md">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>
     </None>
