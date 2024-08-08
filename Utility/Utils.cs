@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace UDPLogger
+namespace UDPLogger.Utility
 {
     public static class Utils
     {
@@ -16,7 +16,7 @@ namespace UDPLogger
 
         public static bool GetBit(this byte b, int bitNumber)
         {
-            return (b & (1 << bitNumber)) != 0;
+            return (b & 1 << bitNumber) != 0;
         }
 
         /// <summary>

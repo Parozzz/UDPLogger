@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using UDPLogger.Configuration;
 using UDPLogger.SQLite;
 using UDPLogger.UDP;
+using UDPLogger.Utility;
 
 namespace UDPLogger
 {
@@ -135,7 +136,7 @@ namespace UDPLogger
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine(ex.ToString());
+                    LoggerTXT.AddException("Database Size Handlig Exception", ex);
                 }
             };
             dispatcherTimer.Start();

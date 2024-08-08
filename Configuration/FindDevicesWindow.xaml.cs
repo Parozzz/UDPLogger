@@ -7,6 +7,7 @@ using System.Net.Sockets;
 using System.Windows;
 using System.Windows.Controls;
 using UDPLogger.UDP;
+using UDPLogger.Utility;
 
 namespace UDPLogger.Configuration
 {
@@ -149,7 +150,7 @@ namespace UDPLogger.Configuration
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine("UDP Broadcast Exception.\n" + ex.ToString());
+                        LoggerTXT.AddException("UDP Broadcast Exception", ex);
                         CloseSocket();
                     }
 

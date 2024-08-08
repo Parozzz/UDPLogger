@@ -1,0 +1,2 @@
+﻿Mentions for code i am using in this project
+- https://www.codeproject.com/Articles/5290638/Customizable-WPF-MessageBox

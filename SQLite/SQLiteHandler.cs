@@ -71,7 +71,7 @@ namespace UDPLogger.SQLite
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine("SQLite Connection Exception.\n" + ex.ToString());
+                        LoggerTXT.AddException("SQLite Connection Exception", ex);
                         CloseConnection();
 
                         Thread.Sleep(100);
@@ -132,7 +132,7 @@ namespace UDPLogger.SQLite
                     }
                     catch (Exception ex)
                     {
-                        Debug.WriteLine("SQLite Exception.\n" + ex.ToString());
+                        LoggerTXT.AddException("SQLite Exception", ex);
                         CloseConnection();
 
                         Thread.Sleep(100);

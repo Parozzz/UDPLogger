@@ -1,9 +1,9 @@
 ﻿using System.Buffers.Binary;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Windows;
+using UDPLogger.Utility;
 
 namespace UDPLogger.UDP
 {
@@ -47,7 +47,7 @@ namespace UDPLogger.UDP
         public UDPSocketHandler()
         {
             udpWorker = new() { WorkerReportsProgress = true, WorkerSupportsCancellation = true };
-
+            
             Application.Current.Dispatcher.ShutdownStarted += (sender, args) => udpWorker.CancelAsync();
         }
 
@@ -56,7 +56,7 @@ namespace UDPLogger.UDP
             ipString = ipAddress;
             this.remotePort = remotePort;
             this.localPort = localPort;
-
+            
             connect = true; //AFTER! FOR ASYNC MATTERS!
         }
 
@@ -163,7 +163,7 @@ namespace UDPLogger.UDP
 
                     if (IPAddress.TryParse(ipString, out IPAddress? IP) && IP != null && localPort > 0 && remotePort > 0)
                     {
-                        udpClient?.Close();
+                        DisconnectClient();
 
                         udpClient = new(localPort);
                         udpClient.Connect(IP, remotePort);
@@ -211,10 +211,20 @@ namespace UDPLogger.UDP
 
         private void DisconnectClient()
         {
-            clientConnected = false;
+            try
+            {
+                //udpReceiveTask?.Dispose();
+                //udpSendTask?.Dispose();
 
-            udpClient?.Close();
-            udpClient = null;
+                udpClient?.Close();
+                udpClient = null;
+
+                clientConnected = false;
+            }
+            catch (Exception ex)
+            {
+                LoggerTXT.AddException("UDP Closing Exception", ex);
+            }
         }
 
         private void UDPReceive()
@@ -234,14 +244,14 @@ namespace UDPLogger.UDP
                 udpReceiveTask = udpClient.ReceiveAsync();
             }
             else if (udpReceiveTask.IsCompleted) //This also takes care of task faulted!
-            {
+            {/*
                 if (udpReceiveTask.Exception != null)
                 {
                     foreach(var ex in udpReceiveTask.Exception.InnerExceptions)
                     {
                         LoggerTXT.AddException("UDPReceiveTask Exception", ex);
                     }
-                }
+                }*/
 
                 udpReceiveTask = udpClient.ReceiveAsync();
             }
@@ -337,7 +347,6 @@ namespace UDPLogger.UDP
                 if (offset >= buffer.Length)
                 {//If the offset goes above the buffer length it means everything has been parsed correctly and move the parsed data to be sent.
                     receivedDataList = dataList;
-                    LoggerTXT.AddDebug("TEST");
                     break;
                 }
             }
